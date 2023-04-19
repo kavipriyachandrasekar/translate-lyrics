@@ -40,3 +40,5 @@ router.post("/tags", async (req, res) => {
 	})
 	res.send({ message: "Song and tags added to database" })
 })
+
+module.exports = router

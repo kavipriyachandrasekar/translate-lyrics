@@ -15,7 +15,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
 // // API Routes
-const songAPI = require("./routes/api/song")
+const songAPI = require("./routes/api/songs.js")
 // const meowAPI = require("./routes/api/meow")
 // const commentAPI = require("./routes/api/comment")
 // const reportAPI = require("./routes/api/report")
