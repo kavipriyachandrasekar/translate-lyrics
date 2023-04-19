@@ -1,20 +1,36 @@
-const mongoose = require("mongoose")
-const MongoURI = process.env.MONGODB_URI
-class Database {
+let mongoose = require("mongoose")
+mongoose.set("strictQuery", false)
 
+class Database {
     constructor() {
-        this.connect();
+        this._connect()
     }
 
-    connect() {
-        mongoose.connect(MongoURI)
-        .then(() => {
-            console.log("Database Connection Successful!");
-        })
-        .catch((err) => {
-            console.log("Database Connection Failed!" + err);
+    _connect() {
+        mongoose
+            .connect(process.env.MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            })
+            .then(() => {
+                console.log("Database connection successful")
+            })
+            .catch((err) => {
+                console.error("Database connection error")
+                console.log(err)
+            })
+    }
+    
+    async start() {
+        return new Promise((resolve, reject) => {
+            mongoose.connection.on("connected", () => {
+                resolve()
+            })
+            mongoose.connection.on("error", (err) => {
+                reject(err)
+            })
         })
     }
 }
 
-module.exports = new Database();
+module.exports = Database

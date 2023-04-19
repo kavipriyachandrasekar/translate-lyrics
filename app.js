@@ -3,13 +3,16 @@ dotenv.config()
 
 const express = require("express")
 const app = express()
-require("./database")
+const Database = require("./database.js")
 const { cors } = require("./middleware")
 const port = process.env.PORT || 3003
 
-app.listen(port, () => {
-	console.log(`Server running on port ${port}`)
+new Database().start().then(() => {
+	app.listen(port, () => {
+		console.log(`Server running on port ${port}`)
+	})
 })
+
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
