@@ -12,9 +12,9 @@ router.get("/", (_, res) => {
 })
 
 router.get("/tags", async (req, res) => {
-	const { tags } = req.query
-	const tagNames = tags.split(",")
-	const tagObjects = await Tags.find({ tagName: { $in: tagNames } })
+	let { tags } = req.query
+	tags = tags.split(",")
+	const tagObjects = await Tags.find({ tagName: { $in: tags } })
 	const songIds = tagObjects.map(tag => tag.songs).flat()
 	const songs = await Songs.find({ _id: { $in: songIds } })
 	res.send({ songs })
@@ -26,11 +26,10 @@ router.post("/tags", async (req, res) => {
 	if (!song) {
 		song = await Songs.create({ songName })
 	}
-	const tagNames = tags.split(",")
-	const tagObjects = await Tags.find({ tagName: { $in: tagNames } })
-	const tagNamesInDatabase = tagObjects.map(tag => tag.tagName)
-	const tagNamesNotInDatabase = tagNames.filter(tag => !tagNamesInDatabase.includes(tag))
-	const newTags = await Tags.insertMany(tagNamesNotInDatabase.map(tagName => ({ tagName })))
+	const tagObjects = await Tags.find({ tagName: { $in: tags } })
+	const tagsInDatabase = tagObjects.map(tag => tag.tagName)
+	const tagsNotInDatabase = tags.filter(tag => !tagsInDatabase.includes(tag))
+	const newTags = await Tags.insertMany(tagsNotInDatabase.map(tagName => ({ tagName })))
 	const allTags = [...tagObjects, ...newTags]
 	allTags.forEach(async tag => {
 		if (!tag.songs.includes(song._id)) {
@@ -38,7 +37,22 @@ router.post("/tags", async (req, res) => {
 			await Tags.updateOne({ _id: tag._id }, { $set: { songs: tag.songs } })
 		}
 	})
+
+	// add tags to song
+	song.tags = allTags.map(tag => tag._id)
+	await Songs.updateOne({ _id: song._id }, { $set: { tags: song.tags } })
 	res.send({ message: "Song and tags added to database" })
 })
+
+// and endpoint to just add unique tags to the database
+router.post("/tags/add", async (req, res) => {
+	const { tags } = req.body
+	const tagObjects = await Tags.find({ tagName: { $in: tags } })
+	const tagsInDatabase = tagObjects.map(tag => tag.tagName)
+	const tagsNotInDatabase = tags.filter(tag => !tagsInDatabase.includes(tag))
+	const newTags = await Tags.insertMany(tagsNotInDatabase.map(tagName => ({ tagName })))
+	res.send({ message: "Tags added to database" })
+})
+
 
 module.exports = router
