@@ -21,23 +21,22 @@ router.get("/tags", async (req, res) => {
 })
 
 router.post("/tags", async (req, res) => {
-	const { songId, tags } = req.body
+	const { songName, tags } = req.body
+	let song = await Songs.findOne({ songName })
+	if (!song) {
+		song = await Songs.create({ songName })
+	}
 	const tagNames = tags.split(",")
 	const tagObjects = await Tags.find({ tagName: { $in: tagNames } })
-	const tagNamesInDb = tagObjects.map(tag => tag.tagName)
-	const newTags = tagNames.filter(tag => !tagNamesInDb.includes(tag))
-	const newTagObjects = newTags.map(tag => ({ tagName: tag, songs: [songId] }))
-	const newTagIds = await Tags.insertMany(newTagObjects)
-
-	const tagIds = [...tagObjects.map(tag => tag._id), ...newTagIds.map(tag => tag._id)]
-
-	res.send({ tagIds })
+	const tagNamesInDatabase = tagObjects.map(tag => tag.tagName)
+	const tagNamesNotInDatabase = tagNames.filter(tag => !tagNamesInDatabase.includes(tag))
+	const newTags = await Tags.insertMany(tagNamesNotInDatabase.map(tagName => ({ tagName })))
+	const allTags = [...tagObjects, ...newTags]
+	allTags.forEach(async tag => {
+		if (!tag.songs.includes(song._id)) {
+			tag.songs.push(song._id)
+			await Tags.updateOne({ _id: tag._id }, { $set: { songs: tag.songs } })
+		}
+	})
+	res.send({ message: "Song and tags added to database" })
 })
-
-// // a sample fetch request from a client would be
-// let tags = ["pop", "rock"]
-// let response = await fetch("/api/song/tags?tags=" + tags.join(","))
-// let data = await response.json()
-// console.log(data)
-
-module.exports = router
